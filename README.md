@@ -1,3 +1,6 @@
-# Mlflow+Minio dockerized setup
+# MLflow+Minio dockerized setup
 * The Minio instance as artifact repository
-* The backend store: SQLite data base
+* The SQLite data base as backend store
+
+# Configuration
+* in .env file, rather self-explanatory
