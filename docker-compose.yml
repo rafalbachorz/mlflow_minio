@@ -1,0 +1,46 @@
+version: '3'
+services:
+  mlflow:
+    build:
+      context: mlflow/
+      dockerfile: Dockerfile
+    volumes:
+      - "./mlruns:/mlruns"
+    ports:
+      - ${MLFLOW_EXTERNAL_PORT}:5000
+    environment:
+      - MLFLOW_S3_ENDPOINT_URL=http://minio-mlflow:9000
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - ARTIFACT_ROOT=${ARTIFACT_ROOT}
+    user: root
+    depends_on:
+      - minio
+    entrypoint: ["mlflow", "server", "-h", "0.0.0.0", "--backend-store-uri", "sqlite:///mlruns.db", "--default-artifact-root", "${ARTIFACT_ROOT}"]
+    container_name: mlflow-server
+    networks:
+      mlflow-network:
+        ipv4_address: 172.20.128.2
+
+  minio:
+    image: minio/minio:latest
+    volumes:
+      - "./data:/data"
+    ports:
+      - ${MINIO_CONSOLE_EXTERNAL_PORT}:9001
+      - ${MINIO_API_EXTERNAL_PORT}:9000
+    environment:
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
+    entrypoint: sh
+    command: -c 'mkdir -p /data/mlflow-artifacts && /usr/bin/minio server /data --console-address :9001'
+    container_name: minio-mlflow
+    networks:
+      mlflow-network:
+        ipv4_address: 172.20.128.3
+
+networks:
+  mlflow-network:
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
